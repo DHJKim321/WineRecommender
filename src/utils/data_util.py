@@ -9,7 +9,6 @@ def make_embedding_text(row):
     return f"""
         Title: {row['title']}
         Country: {row['country']}
-        Province: {row['province']}
         Region: {row['region']}
         Variety: {row['variety']}
         Winery: {row['winery']}
