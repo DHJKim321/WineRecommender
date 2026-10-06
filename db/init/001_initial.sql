@@ -14,9 +14,18 @@ CREATE TABLE IF NOT EXISTS wines (
     price NUMERIC,
     variety TEXT,
     winery TEXT,
-    embedding VECTOR(768)
 );
 
-CREATE INDEX IF NOT EXISTS wines_embedding_idx
-ON wines
+CREATE TABLE IF NOT EXISTS embeddings (
+    source_id BIGINT PRIMARY KEY REFERENCES wines(source_id),
+
+    embedding VECTOR(768),
+    embedding_model TEXT,
+    embedding_template_version TEXT,
+    content_hash INTEGER,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+);
+
+CREATE INDEX IF NOT EXISTS embeddings_vector_idx
+ON embeddings
 USING hnsw (embedding vector_cosine_ops);

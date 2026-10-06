@@ -2,8 +2,8 @@ import pandas as pd
 import psycopg
 import logging
 
-from src.configs.setting import RAW_DATA_DIR, CLEAN_DATA_DIR, DB_URL, EMBEDDING_MODEL
-from src.utils.data_util import make_embedding_text, make_region
+from src.configs.setting import RAW_DATA_DIR, CLEAN_DATA_DIR, DB_URL, EMBEDDING_MODEL, BATCH_SIZE, EMBEDDING_TEMPLATE_VERSION
+from src.utils.data_util import make_embedding_df, make_final_df
 from src.adapter.db import PostgresAdapter
 from src.adapter.embedding_model import EmbeddingModel
 
@@ -21,9 +21,8 @@ def process():
 
     logger.info(f"Loaded {len(df)} rows")
 
-    # Make new region column (concatenation of region_1 + province)
-    df["region"] = df.apply(make_region, axis=1)
-    df = df[['source_id', 'title', 'description', 'region', 'country', 'designation', 'points', 'price', 'variety', 'winery']]
+    # Creating new columns and selecting relevant columns
+    df = make_final_df(df)
     
     # Write to file
     try:
@@ -34,21 +33,29 @@ def process():
 
     logger.info(f"Final dataset: {len(df)} rows")
     
-    # Format data into input text
-    df["embedding_text"] = df.apply(make_embedding_text, axis=1)
-    
-    # Load embedding model
-    logger.info("Loading embedding model")
-    embedding_model = EmbeddingModel(EMBEDDING_MODEL)
-    embeddings = embedding_model.encode(df)
-    
-    # Write to database
-    logger.info("Writing to database")
+    # Load embedding model and db adapter
+    logger.info("Loading embedding model and db adapter")
+    embedding_model = EmbeddingModel(EMBEDDING_MODEL, BATCH_SIZE)
     db = PostgresAdapter(DB_URL)
+    
+    # Batch encode -> write to db
     with psycopg.connect(DB_URL) as conn:
-        db.create_staging_table(conn)
-        db.copy_into_staging_table(conn, df, embeddings)
-        db.upsert_into_table(conn)
+        db.create_staging_tables(conn)
+        for start in range(len(df), BATCH_SIZE):
+            logger.info(f"Encoding and writing batch: {start // BATCH_SIZE}")
+            end = start + BATCH_SIZE
+            batch_df = df.iloc[start:end]
+            batch_embeddings = embedding_model.encode(batch_df)
+
+            batch_embedding_df = make_embedding_df(batch_df, batch_embeddings, EMBEDDING_MODEL, EMBEDDING_TEMPLATE_VERSION)
+
+            db.copy_into_wines_staging_table(conn, batch_df)
+            db.copy_into_embeddings_staging_table(conn, batch_embedding_df)
+            db.upsert_into_wines_table(conn)
+            db.upsert_into_embeddings_table(conn)
+
+            db.clear_staging_tables(conn)            
+            conn.commit()
     
     logger.info("====== Data processing complete ======")
 
