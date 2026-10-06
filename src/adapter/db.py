@@ -23,25 +23,23 @@ class PostgresAdapter:
                     points INTEGER,
                     price NUMERIC,
                     variety TEXT,
-                    winery TEXT,
-
+                    winery TEXT
                 );
                 
                 CREATE TEMP TABLE staging_embeddings (
-                    id SERIAL PRIMARY KEY,
                     source_id BIGINT REFERENCES staging_wines(source_id),
 
                     embedding VECTOR(768),
                     embedding_model TEXT,
                     embedding_template_version INTEGER,
-                    content_hash INTEGER,
-                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    content_hash TEXT,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
                 );
                 """
             )
 
     def copy_into_wines_staging_table(self, conn, df):
-        logger.info("Copying into wine staging table")
+        # logger.info("Copying into wine staging table")
         with conn.cursor() as cur:
             with cur.copy("""
                 COPY staging_wines (
@@ -54,9 +52,9 @@ class PostgresAdapter:
                     points,
                     price,
                     variety,
-                    winery,
+                    winery
                 )
-                FROM STDIN
+                FROM STDIN;
             """) as copy:
 
                 for row in df.itertuples(index=False):
@@ -74,7 +72,7 @@ class PostgresAdapter:
                     ))
                     
     def copy_into_embeddings_staging_table(self, conn, df):
-        logger.info("Copying into embeddings staging table")
+        # logger.info("Copying into embeddings staging table")
         with conn.cursor() as cur:
             with cur.copy("""
                 COPY staging_embeddings (
@@ -82,15 +80,16 @@ class PostgresAdapter:
                     embedding,
                     embedding_model,
                     embedding_template_version,
-                    content_hash,
+                    content_hash
                 )
                 FROM STDIN
             """) as copy:
 
                 for row in df.itertuples(index=False):
+                    vector = "[" + ",".join(map(str, row.embedding)) + "]"
                     copy.write_row((
                         row.source_id,
-                        row.embedding,
+                        vector,
                         row.embedding_model,
                         row.embedding_template_version,
                         row.content_hash,
@@ -99,13 +98,12 @@ class PostgresAdapter:
     def clear_staging_tables(self, conn):
         with conn.cursor() as cur:
             cur.execute("""
-                TRUNCATE staging_wines;
-                TRUNCATE staging_embeddings;
+                TRUNCATE staging_embeddings CASCADE;
             """)
                     
     def upsert_into_wines_table(self, conn):
         # Upsert from staging table
-        logger.info("Upserting into wines from staging table")
+        # logger.info("Upserting into wines from staging table")
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO wines (
@@ -118,7 +116,7 @@ class PostgresAdapter:
                     points,
                     price,
                     variety,
-                    winery,
+                    winery
                 )
                 SELECT
                     source_id,
@@ -130,7 +128,7 @@ class PostgresAdapter:
                     points,
                     price,
                     variety,
-                    winery,
+                    winery
                 FROM staging_wines
 
                 ON CONFLICT (source_id)
@@ -143,27 +141,27 @@ class PostgresAdapter:
                     points = EXCLUDED.points,
                     price = EXCLUDED.price,
                     variety = EXCLUDED.variety,
-                    winery = EXCLUDED.winery,
+                    winery = EXCLUDED.winery
             """)
                     
     def upsert_into_embeddings_table(self, conn):
         # Upsert from staging table
-        logger.info("Upserting into embeddings from staging table")
+        # logger.info("Upserting into embeddings from staging table")
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO embeddings (
-                    source_id BIGINT REFERENCES staging_wines(source_id),
-                    embedding VECTOR(768),
-                    embedding_model TEXT,
-                    embedding_template_version INTEGER,
-                    content_hash INTEGER,
+                    source_id,
+                    embedding,
+                    embedding_model,
+                    embedding_template_version,
+                    content_hash
                 )
                 SELECT
                     source_id,
                     embedding,
                     embedding_model,
                     embedding_template_version,
-                    content_hash,
+                    content_hash
                 FROM staging_embeddings
 
                 ON CONFLICT (source_id)
@@ -171,5 +169,5 @@ class PostgresAdapter:
                     embedding = EXCLUDED.embedding,
                     embedding_model = EXCLUDED.embedding_model,
                     embedding_template_version = EXCLUDED.embedding_template_version,
-                    content_hash = EXCLUDED.content_hash,
+                    content_hash = EXCLUDED.content_hash
             """)

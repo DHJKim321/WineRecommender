@@ -1,6 +1,7 @@
 import pandas as pd
 import psycopg
 import logging
+from tqdm import tqdm
 
 from src.configs.setting import RAW_DATA_DIR, CLEAN_DATA_DIR, DB_URL, EMBEDDING_MODEL, BATCH_SIZE, EMBEDDING_TEMPLATE_VERSION
 from src.utils.data_util import make_embedding_df, make_final_df
@@ -8,6 +9,11 @@ from src.adapter.db import PostgresAdapter
 from src.adapter.embedding_model import EmbeddingModel
 
 logger = logging.getLogger(__name__)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+)
 
 def process():
     logger.info("====== Starting data processing ======")
@@ -35,14 +41,15 @@ def process():
     
     # Load embedding model and db adapter
     logger.info("Loading embedding model and db adapter")
-    embedding_model = EmbeddingModel(EMBEDDING_MODEL, BATCH_SIZE)
+    embedding_model = EmbeddingModel(EMBEDDING_MODEL)
     db = PostgresAdapter(DB_URL)
     
     # Batch encode -> write to db
     with psycopg.connect(DB_URL) as conn:
         db.create_staging_tables(conn)
-        for start in range(len(df), BATCH_SIZE):
-            logger.info(f"Encoding and writing batch: {start // BATCH_SIZE}")
+        logger.info("Starting embedding generation")
+        for start in tqdm(range(0, len(df), BATCH_SIZE), desc="Generating batch embeddings"):
+            # logger.info(f"Encoding and writing batch: {start // BATCH_SIZE}")
             end = start + BATCH_SIZE
             batch_df = df.iloc[start:end]
             batch_embeddings = embedding_model.encode(batch_df)

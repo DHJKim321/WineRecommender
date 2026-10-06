@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS wines (
     points INTEGER,
     price NUMERIC,
     variety TEXT,
-    winery TEXT,
+    winery TEXT
 );
 
 CREATE TABLE IF NOT EXISTS embeddings (
@@ -22,8 +22,8 @@ CREATE TABLE IF NOT EXISTS embeddings (
     embedding VECTOR(768),
     embedding_model TEXT,
     embedding_template_version TEXT,
-    content_hash INTEGER,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
+    content_hash TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS embeddings_vector_idx
