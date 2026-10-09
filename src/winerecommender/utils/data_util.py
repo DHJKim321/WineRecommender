@@ -1,5 +1,8 @@
+from decimal import Decimal
+
 import pandas as pd
 import hashlib
+import math
 
 def make_region(row):
     if pd.isna(row["region_1"]) or row["province"] == row["region_1"]:
@@ -47,3 +50,17 @@ def make_embedding_df(
         })
 
         return embedding_df
+
+def clean_value(value):
+    if value is None:
+        return None
+
+    if isinstance(value, Decimal):
+        if not value.is_finite():
+            return None
+        return float(value)
+
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+
+    return value

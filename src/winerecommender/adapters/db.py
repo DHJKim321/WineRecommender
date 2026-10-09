@@ -1,5 +1,7 @@
 import logging
 
+from src.winerecommender.utils.data_util import clean_value
+
 logger = logging.getLogger(__name__)
 
 class PostgresAdapter:
@@ -187,7 +189,7 @@ class PostgresAdapter:
                     w.price,
                     w.variety,
                     w.winery,
-                    e.embedding
+                    e.embedding,
                     e.embedding <=> %s::vector AS distance
                 FROM wines AS w
                 JOIN embeddings AS e
@@ -197,4 +199,19 @@ class PostgresAdapter:
                 """,
                 (query_vector, query_vector, top_n),
             )
-            return cur.fetchall()
+            result = []
+            for row in cur.fetchall():
+                result.append({
+                    "source_id": clean_value(row[0]),
+                    "title": clean_value(row[1]),
+                    "description": clean_value(row[2]),
+                    "region": clean_value(row[3]),
+                    "country": clean_value(row[4]),
+                    "designation": clean_value(row[5]),
+                    "points": clean_value(row[6]),
+                    "price": clean_value(row[7]),
+                    "variety": clean_value(row[8]),
+                    "winery": clean_value(row[9]),
+                    "distance": clean_value(row[11]),
+                })
+            return result

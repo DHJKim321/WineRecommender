@@ -1,20 +1,15 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 
 class WineAttribute(BaseModel):
     source_id: int
-    title: str
-    description: str
-    region: str
-    country: str
-    designation: str
-    points: int
-    price: float
-    variety: str
-    winery: str
-    
-class WineEmbedding(WineAttribute):
-    source_id: int
-    embedding_config = ConfigDict(arbitrary_types_allowed=True)
-    embedding: list[float]
-    distance: float
+    title: str | None = None
+    description: str | None = None
+    region: str | None = None
+    country: str | None = None
+    designation: str | None = None
+    points: int | None = None
+    price: float | None = None
+    variety: str | None = None
+    winery: str | None = None
+    distance: float | None = None

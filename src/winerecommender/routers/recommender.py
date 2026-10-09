@@ -1,32 +1,28 @@
-from fastapi import APIRouter
-from pydantic import BaseModel, Field
+from fastapi import Request, APIRouter
 
-from configs.setting import TOP_N
-from services.recommender import recommend_wines, encode
+from src.winerecommender.models.requests import RecommendationRequest, EncodeQueryRequest
 
-router = APIRouter(tags=["recommender"])
+router = APIRouter(prefix="/recommender", tags=["recommender"])
 
-class RecommendationRequest(BaseModel):
-    query: str = Field(
-        min_length=1,
-        description="Natural-language wine preferences",
-    )
-    limit: int = Field(default=TOP_N, ge=1,)
-
-
-@router.post("/")
-def recommend(request: RecommendationRequest):
-    recommendations = recommend_wines(request.query, request.limit)
-    if recommendations == []:
-        recommendations = "Could not find any relevant wines"
+@router.post("/recommend")
+def recommend(
+        body: RecommendationRequest,
+        request: Request
+    ):
+    service = request.app.state.recommender
+    recommendations = service.recommend_wines(body.query, body.limit)
     return {
-        "query": request.query,
+        "query": body.query,
         "recommendations": recommendations,
     }
-    
+
 @router.post("/encode")
-def encode_query(request: RecommendationRequest):
-    embedding = encode(request.query)
+def encode_query(
+        body: EncodeQueryRequest,
+        request: Request
+        ):
+    service = request.app.state.recommender
+    embedding = service.encode(body.query)
     return {
         "embedding": embedding
     }
