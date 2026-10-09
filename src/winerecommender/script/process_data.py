@@ -3,10 +3,10 @@ import psycopg
 import logging
 from tqdm import tqdm
 
-from src.configs.setting import RAW_DATA_DIR, CLEAN_DATA_DIR, DB_URL, EMBEDDING_MODEL, BATCH_SIZE, EMBEDDING_TEMPLATE_VERSION
-from src.utils.data_util import make_embedding_df, make_final_df
-from src.adapter.db import PostgresAdapter
-from src.adapter.embedding_model import EmbeddingModel
+from src.winerecommender.configs.setting import RAW_DATA_DIR, CLEAN_DATA_DIR, DB_URL, EMBEDDING_MODEL, BATCH_SIZE, EMBEDDING_TEMPLATE_VERSION
+from src.winerecommender.utils.data_util import make_embedding_df, make_final_df
+from src.winerecommender.adapter.db import PostgresAdapter
+from src.winerecommender.adapter.embedding_model import EmbeddingModel
 
 logger = logging.getLogger(__name__)
 

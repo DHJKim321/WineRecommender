@@ -2,3 +2,5 @@ src/data/*.json
 .vscode
 .env
 __pycache__
+.venv
+.python-version
