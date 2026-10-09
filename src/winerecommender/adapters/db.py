@@ -194,7 +194,7 @@ class PostgresAdapter:
                 FROM wines AS w
                 JOIN embeddings AS e
                     ON w.source_id = e.source_id
-                ORDER BY e.embedding <=> %s::vector
+                ORDER BY e.embedding <=> %s::vector DESC
                 LIMIT %s
                 """,
                 (query_vector, query_vector, top_n),
