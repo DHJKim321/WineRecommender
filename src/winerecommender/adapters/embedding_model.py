@@ -17,3 +17,11 @@ class EmbeddingModel:
             show_progress_bar=False
         )
         return embeddings
+    
+    def encode_query(self, query):
+        embedding = self.embedding_model.encode(
+            query,
+            normalize_embeddings=True,
+            show_progress_bar=False
+        )
+        return embedding

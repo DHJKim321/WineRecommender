@@ -5,8 +5,8 @@ from tqdm import tqdm
 
 from src.winerecommender.configs.setting import RAW_DATA_DIR, CLEAN_DATA_DIR, DB_URL, EMBEDDING_MODEL, BATCH_SIZE, EMBEDDING_TEMPLATE_VERSION
 from src.winerecommender.utils.data_util import make_embedding_df, make_final_df
-from src.winerecommender.adapter.db import PostgresAdapter
-from src.winerecommender.adapter.embedding_model import EmbeddingModel
+from src.winerecommender.adapters.db import PostgresAdapter
+from src.winerecommender.adapters.embedding_model import EmbeddingModel
 
 logger = logging.getLogger(__name__)
 

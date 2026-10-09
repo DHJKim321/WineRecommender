@@ -27,7 +27,7 @@ class PostgresAdapter:
                 );
                 
                 CREATE TEMP TABLE staging_embeddings (
-                    source_id BIGINT REFERENCES staging_wines(source_id),
+                    source_id BIGINT PRIMARY KEY REFERENCES staging_wines(source_id),
 
                     embedding VECTOR(768),
                     embedding_model TEXT,
@@ -98,7 +98,7 @@ class PostgresAdapter:
     def clear_staging_tables(self, conn):
         with conn.cursor() as cur:
             cur.execute("""
-                TRUNCATE staging_embeddings CASCADE;
+                TRUNCATE TABLE staging_embeddings, staging_wines;
             """)
                     
     def upsert_into_wines_table(self, conn):
@@ -171,3 +171,30 @@ class PostgresAdapter:
                     embedding_template_version = EXCLUDED.embedding_template_version,
                     content_hash = EXCLUDED.content_hash
             """)
+            
+    def get_top_candidates(self, conn, query_embedding, top_n):
+        query_vector = "[" + ",".join(map(str, query_embedding)) + "]"
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    w.source_id,
+                    w.title,
+                    w.description,
+                    w.region,
+                    w.country,
+                    w.designation,
+                    w.points,
+                    w.price,
+                    w.variety,
+                    w.winery,
+                    e.embedding
+                    e.embedding <=> %s::vector AS distance
+                FROM wines AS w
+                JOIN embeddings AS e
+                    ON w.source_id = e.source_id
+                ORDER BY e.embedding <=> %s::vector
+                LIMIT %s
+                """,
+                (query_vector, query_vector, top_n),
+            )
+            return cur.fetchall()
