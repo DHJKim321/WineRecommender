@@ -10,3 +10,6 @@ class EncodeQueryRequest(BaseModel):
     
 class RecommendationRequest(EncodeQueryRequest):
     limit: int = Field(default=TOP_N, ge=1, le=50, description="Maximum number of recommendations")#
+
+class ExtractRequest(BaseModel):
+    query: str
