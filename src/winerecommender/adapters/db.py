@@ -1,5 +1,8 @@
 import logging
 
+from winerecommender.models.attributes import WineQueryFilter
+from winerecommender.utils.sql_util import build_sql_params
+
 from src.winerecommender.utils.data_util import clean_value
 
 logger = logging.getLogger(__name__)
@@ -174,31 +177,11 @@ class PostgresAdapter:
                     content_hash = EXCLUDED.content_hash
             """)
             
-    def get_top_candidates(self, conn, query_embedding, top_n):
+    def get_top_candidates(self, conn, query_embedding, top_n: int, filter_params: WineQueryFilter):
         query_vector = "[" + ",".join(map(str, query_embedding)) + "]"
+        sql, params = build_sql_params(query_vector, top_n, filter_params)
         with conn.cursor() as cur:
-            cur.execute("""
-                SELECT
-                    w.source_id,
-                    w.title,
-                    w.description,
-                    w.region,
-                    w.country,
-                    w.designation,
-                    w.points,
-                    w.price,
-                    w.variety,
-                    w.winery,
-                    e.embedding,
-                    e.embedding <=> %s::vector AS distance
-                FROM wines AS w
-                JOIN embeddings AS e
-                    ON w.source_id = e.source_id
-                ORDER BY e.embedding <=> %s::vector DESC
-                LIMIT %s
-                """,
-                (query_vector, query_vector, top_n),
-            )
+            cur.execute(sql, params)
             result = []
             for row in cur.fetchall():
                 result.append({
